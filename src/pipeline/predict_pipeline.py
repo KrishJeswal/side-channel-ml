@@ -38,9 +38,12 @@ class PredictPipelineConfig:
         )
 
     def transformer_path(self) -> str:
+        # PCA transformers are saved by n_components (transformer_pca_n{k}),
+        # matching DataTransformationConfig and app.py; snr/anova use the k tag.
+        transformer_tag = f"pca_n{self.k}" if self.strategy == "pca" else self.tag
         return os.path.join(
             "artifacts", "models",
-            f"transformer_{self.tag}.joblib"
+            f"transformer_{transformer_tag}.joblib"
         )
 
 
