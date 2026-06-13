@@ -36,7 +36,7 @@ Three novel findings:
 
 **ASCAD fixed-key** — published by ANSSI via [data.gouv.fr](https://www.data.gouv.fr/en/datasets/ascad-anssi-sca-database/)
 
-The raw download from ANSSI is a large archive (~800 MB compressed). It does not ship as a ready-to-use `ASCAD.h5` — you need to extract the relevant HDF5 file from it. `generate_ascad.py` handles this: it locates the raw archive, extracts the fixed-key trace file, and writes `ASCAD.h5` to `data/` with the correct profiling/attack split.
+The raw ANSSI download (`ASCAD.h5`) is large — 60,000 traces of ~100,000 samples each. It is not in the windowed, split form this pipeline expects. `generate_ascad.py` handles the conversion: it reads `artifacts/raw/ASCAD.h5`, windows each trace to the 700 samples around the byte-2 SubBytes operation (samples 45400–46100), splits into 50k profiling / 10k attack, and writes `artifacts/raw/ASCAD_processed.h5` with plaintext, key, and mask metadata.
 
 | Property          | Value                                  |
 | ----------------- | -------------------------------------- |
@@ -97,7 +97,7 @@ GE = 0.46 at 500 traces constitutes practical key recovery for the target byte.
 CipherTrace-side-channel-ml/
 ├── src/
 │   ├── components/
-│   │   ├── data_ingestion.py        # Load ASCAD.h5, return profiling/attack splits
+│   │   ├── data_ingestion.py        # Load ASCAD_processed.h5, generate HW labels, return splits
 │   │   ├── data_transformation.py   # POITransformer: SNR, ANOVA, PCA (sklearn API)
 │   │   └── model_trainer.py         # Train 6 classifiers, 5-fold CV, joblib save
 │   ├── pipeline/
@@ -111,10 +111,13 @@ CipherTrace-side-channel-ml/
 │   ├── 02_feature_engineering.ipynb # POI strategy comparison, PCA variance analysis
 │   ├── 03_model_comparison.ipynb    # 72-run grid, GE heatmap, effect of k
 │   └── 04_novel_contributions.ipynb # SHAP analysis, HW vs. Identity GE curves
-├── artifacts/                       # Saved models (.joblib) and processed arrays
-├── data/                            # ASCAD.h5 lives here (not committed — see setup)
-├── app.py                           # Streamlit app: upload trace → predict key byte
-├── generate_ascad.py                # Extracts ASCAD.h5 from the raw ANSSI archive
+├── artifacts/
+│   ├── raw/                         # ASCAD.h5 (input) + ASCAD_processed.h5 — not committed, see setup
+│   ├── ingested/                    # X_prof/y_prof/pt_* .npy — not committed
+│   ├── transformed/                 # transformed trace arrays — not committed
+│   └── models/                      # *.joblib models, transformers, results — not committed
+├── app.py                           # Streamlit app: configure attack → run GE evaluation
+├── generate_ascad.py                # Windows raw ASCAD.h5 → ASCAD_processed.h5 (700 samples, 50k/10k split)
 ├── verify.py                        # Confirms dataset shapes before training
 ├── requirements.txt
 ├── setup.py
@@ -139,48 +142,52 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**2. Download the raw ANSSI archive**
+**2. Download the raw ANSSI dataset**
 
-Go to [data.gouv.fr](https://www.data.gouv.fr/datasets/ascad) and download the ASCAD fixed-key archive. Place the downloaded file in the `data/` directory.
+Go to [data.gouv.fr](https://www.data.gouv.fr/datasets/ascad) and download the ASCAD fixed-key file (`ASCAD.h5`). Place it at `artifacts/raw/ASCAD.h5`.
 
-**3. Generate ASCAD.h5**
+**3. Generate the processed dataset**
 
-The archive does not ship as a ready-to-use HDF5 file. Run:
+The raw file holds full-length traces. Window and split them into the form the pipeline expects:
 
 ```bash
 python generate_ascad.py
 ```
 
-This extracts the fixed-key trace file from the archive and writes `data/ASCAD.h5` with the correct 50k/10k profiling/attack split.
+This writes `artifacts/raw/ASCAD_processed.h5` — traces windowed to 700 samples (45400–46100) with the 50k/10k profiling/attack split and metadata.
 
 **4. Verify the dataset**
 
 ```bash
 python verify.py
-# Expected output:
-# profiling_traces: (50000, 700)
-# attack_traces:    (10000, 700)
+# Expected output (abridged):
+# Profiling traces shape : (50000, 700)
+# Attack traces shape    : (10000, 700)
+# Unique classes : [0 1 2 3 4 5 6 7 8]
+# ALL CHECKS PASSED — setup complete
 ```
 
-If shapes match, you're ready to train.
+If shapes match and all 9 HW classes are present, you're ready to train.
 
 ---
 
 ## Running the Pipeline
 
-**Full training run (all 72 configurations):**
+**Train one configuration (all 6 classifiers):**
 
 ```bash
-python src/pipeline/train_pipeline.py
+python -m src.pipeline.train_pipeline --strategy pca --k 100
 ```
 
-Trains all 6 classifiers across 3 POI strategies and k ∈ {20, 50, 100, 200}. Saves models to `artifacts/`.
+A single run trains all 6 classifiers for one `(strategy, k)` pair and saves models + the fitted transformer to `artifacts/models/`. `--strategy` is one of `snr`, `anova`, `pca` (default `snr`); `--k` defaults to 50. The full 72-cell study is this command swept over the 3 strategies × k ∈ {20, 50, 100, 200} (or run notebook `03_model_comparison.ipynb`).
 
 **GE evaluation on attack traces:**
 
 ```bash
-python src/pipeline/predict_pipeline.py
+python -m src.pipeline.predict_pipeline --strategy pca --k 100 --model mlp
 ```
+
+Loads the matching saved model + transformer and reports Guessing Entropy across trace counts plus NtD.
 
 **Explore results in notebooks:**
 
@@ -196,7 +203,7 @@ Start with `01_EDA.ipynb` and work through in order.
 streamlit run app.py
 ```
 
-Upload a raw power trace and get a predicted Hamming Weight class and key byte probability distribution.
+Pick a classifier, POI strategy, and k in the sidebar, then run the attack to see Guessing Entropy, NtD, and an automatic breakdown of why that configuration performed as it did.
 
 ---
 
