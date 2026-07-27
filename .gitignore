@@ -54,3 +54,4 @@ Thumbs.db
 side-channel-ml.egg-info/
 !.gitkeep
 !**/.gitkeep
+PROJECT.md

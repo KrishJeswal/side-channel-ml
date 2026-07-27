@@ -5,12 +5,9 @@
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0-red)
 ![SHAP](https://img.shields.io/badge/Explainability-SHAP-blueviolet)
 ![Streamlit](https://img.shields.io/badge/App-Streamlit-ff4b4b?logo=streamlit&logoColor=white)
-![Paper](https://img.shields.io/badge/Paper-IEEE%20Access%202026-lightgrey)
 
 **ML-based side-channel attack on masked AES-128.**  
 Systematic evaluation of feature engineering strategies for profiling attacks, with SHAP leakage localization and a leakage model comparison.
-
-> Paper submitted to IEEE Access, May 2026.
 
 ---
 
@@ -261,14 +258,6 @@ GE = 0 means the correct key is always ranked first. GE = 127 is random guessing
 - **Visualization** — matplotlib, seaborn
 - **App** — Streamlit
 - **Serialization** — joblib
-
----
-
-## Paper
-
-**Systematic Evaluation of Machine Learning Classifiers and Feature Engineering Strategies for Side-Channel Attacks on Masked AES-128**  
-Krish Jeswal — RV College of Engineering, Bangalore  
-*Submitted to IEEE Access, May 2026*
 
 ---
 

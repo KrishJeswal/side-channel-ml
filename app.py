@@ -190,7 +190,7 @@ with st.sidebar:
     st.markdown("""
     <div class="info-box">
     <strong>Best HW Config:</strong><br>
-    MLP + PCA + k=100 → GE=16.36<br><br>
+    MLP + PCA + k=50 → GE=16.36<br><br>
     <strong>Best Overall (Identity):</strong><br>
     MLP + PCA + k=100 → GE=0.46<br>
     (Identity model, not available here)<br><br>
@@ -355,7 +355,7 @@ with tab1:
 
 **2. Strategy Choice:** {strategy_feedback}
 
-**3. Benchmark Comparison:** Best HW result: **MLP + PCA + k=100 → GE=16.36** at 500 traces.
+**3. Benchmark Comparison:** Best HW result: **MLP + PCA + k=50 → GE=16.36** at 500 traces.
 Best overall (Identity model, 256 classes): **GE=0.46** — key fully broken at 500 traces.
             """)
 
@@ -446,5 +446,4 @@ with tab3:
     * **Author**: Krish Jeswal
     * **Institute**: RVCE Bengaluru | ETE Batch 2024–2028
     * **GitHub**: KrishJeswal
-    * **Target Venue**: IEEE Access 2026
     """, unsafe_allow_html=True)
